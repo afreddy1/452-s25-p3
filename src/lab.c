@@ -41,16 +41,22 @@ size_t btok(size_t bytes)
 
 struct avail *buddy_calc(struct buddy_pool *pool, struct avail *buddy){
 
-    size_t blockSize = (UINT64_C(1) << buddy->kval);
-    uintptr_t buddyAddr = (uintptr_t)buddy ^ blockSize;
-
-    struct avail *buddyBlock = (struct avail *)buddyAddr;
-
-    return buddyBlock;
+    if(!pool || !buddy) {
+        return NULL;
+    } else {
+        uintptr_t buddyBlock = (uintptr_t)buddy - (uintptr_t)pool->base;
+        buddyBlock = buddyBlock ^ UINT64_C(1) << buddy->kval;
+        return (struct avail *)((uintptr_t)pool->base + buddyBlock);
+    }
 }
 
 void *buddy_malloc(struct buddy_pool *pool, size_t size)
 {
+    //printf("Attempting to allocate %zu bytes\n", size); //debug
+
+    if (size == 0 || pool == NULL) {
+        return NULL;
+    }
 
     //get the kval for the requested size with enough room for the tag and kval fields
     size_t kval = btok(size + sizeof(struct avail));
@@ -108,6 +114,7 @@ void *buddy_malloc(struct buddy_pool *pool, size_t size)
 
 
 void buddy_free(struct buddy_pool *pool, void *ptr){
+   // printf("Freeing memory at %p\n", ptr); //debug
 
     struct avail *block = (struct avail *)ptr;
     size_t k = block->kval;
@@ -231,21 +238,21 @@ void buddy_destroy(struct buddy_pool *pool)
  * This function can be useful to visualize the bits in a block. This can
  * help when figuring out the buddy_calc function!
  */
-static void printb(unsigned long int b)
-{
-     size_t bits = sizeof(b) * 8;
-     unsigned long int curr = UINT64_C(1) << (bits - 1);
-     for (size_t i = 0; i < bits; i++)
-     {
-          if (b & curr)
-          {
-               printf("1");
-          }
-          else
-          {
-               printf("0");
-          }
-          curr >>= 1L;
-     }
-}
+// static void printb(unsigned long int b)
+// {
+//      size_t bits = sizeof(b) * 8;
+//      unsigned long int curr = UINT64_C(1) << (bits - 1);
+//      for (size_t i = 0; i < bits; i++)
+//      {
+//           if (b & curr)
+//           {
+//                printf("1");
+//           }
+//           else
+//           {
+//                printf("0");
+//           }
+//           curr >>= 1L;
+//      }
+// }
 

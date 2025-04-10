@@ -19,12 +19,9 @@ void tearDown(void) {
 }
 
 
-/*
-
-
 /**
  * Check the pool to ensure it is full.
- 
+*/ 
 void check_buddy_pool_full(struct buddy_pool *pool)
 {
   //A full pool should have all values 0-(kval-1) as empty
@@ -49,7 +46,6 @@ void check_buddy_pool_full(struct buddy_pool *pool)
   assert(pool->avail[pool->kval_m].next == pool->base);
 }
 
-*/
 
 /**
  * Check the pool to ensure it is empty.
@@ -136,10 +132,49 @@ void test_buddy_init(void)
       size_t size = UINT64_C(1) << i;
       struct buddy_pool pool;
       buddy_init(&pool, size);
-      //check_buddy_pool_full(&pool);
+      check_buddy_pool_full(&pool);
       buddy_destroy(&pool);
     }
 }
+
+/********************************************* My Added Tests Below  *********************************************/
+
+void test_buddy_malloc_too_much(void)
+{
+  fprintf(stderr, "->Test allocating more memory than available\n");
+  struct buddy_pool pool;
+  size_t bytes = UINT64_C(1) << MIN_K; // Initialize pool with small block size
+  buddy_init(&pool, bytes);
+
+  // Allocate all available memory in the pool
+  size_t ask = bytes - sizeof(struct avail);
+  void *mem = buddy_malloc(&pool, ask);
+  assert(mem != NULL); // Should succeed in allocating the entire pool
+
+  // attempt to allocate more memory than is available
+  void *fail = buddy_malloc(&pool, 5);
+  assert(fail == NULL);
+  assert(errno == ENOMEM); 
+
+  // clean
+  buddy_free(&pool, mem);
+  buddy_destroy(&pool);
+}
+
+void test_btok(void)
+{
+    assert(btok(1) == 0);  
+    assert(btok(16) == 4);  
+    assert(btok(9) == 4);   
+    assert(btok(31) == 5);   
+    assert(btok(1024) == 10);
+    assert(btok(2048) == 11); 
+    assert(btok(65536) == 16);
+    assert(btok(1023) == 10);  
+
+}
+
+/********************************************* My Added Tests Above  *********************************************/
 
 
 int main(void) {
@@ -153,5 +188,7 @@ int main(void) {
   RUN_TEST(test_buddy_init);
   RUN_TEST(test_buddy_malloc_one_byte);
   RUN_TEST(test_buddy_malloc_one_large);
+  RUN_TEST(test_buddy_malloc_too_much);
+  RUN_TEST(test_btok);
 return UNITY_END();
 }
